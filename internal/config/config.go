@@ -40,6 +40,12 @@ func Read() (Config, error) {
 		fmt.Println("could not get config object", err)
 	}
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return Config{}, err
+	}
+	config.DownloadDirectory = filepath.Clean(filepath.Join(home, config.DownloadDirectory))
+
 	return config, nil
 }
 

@@ -28,6 +28,19 @@ func dirExists(path string) bool {
 	return true
 }
 
+func setupTempDir(path string) (string, error) {
+	if !dirExists(path) {
+		fmt.Println("directory does not exist, creating directory...")
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			return "", fmt.Errorf("Could not create user directory")
+		}
+	}
+	fmt.Println("directory exists, using it...")
+
+	return path, nil
+}
+
 func handlerReview(s *state, cmd command) error {
 
 	if len(cmd.args) < 1 {
@@ -43,14 +56,12 @@ func handlerReview(s *state, cmd command) error {
 
 	userName, _ := extractRepoDetails(repositoryLink)
 
-	tempDirPath := filepath.Join(s.config.DownloadDirectory, userName)
+	userDirPath := filepath.Join(s.config.DownloadDirectory, userName)
 
-	fmt.Println("temp dir: ", tempDirPath)
-
-	if !dirExists(tempDirPath) {
-		fmt.Println("dir does not exist")
+	userDirPath, err := setupTempDir(userDirPath)
+	if err != nil {
+		return fmt.Errorf("Could not create temp directory: %v", err)
 	}
-
 
 	return nil
 }
