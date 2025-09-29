@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"syscall"
 )
@@ -58,7 +59,7 @@ func cloneRepository(link, path string) error {
 	return nil
 }
 
-func deleteExistingRepo(path string) error {
+func deleteDirectory(path string) error {
 	cmd := exec.Command("rm", "-rf", path)
 	if err := cmd.Run(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -66,18 +67,22 @@ func deleteExistingRepo(path string) error {
 		}
 		return fmt.Errorf("failed to delete directory: %w", err)
 	}
-	fmt.Println("Existing directory deleted...")
+	fmt.Println("✅ Directory deleted...")
 	return nil
 
 }
 
 func setupLocalRepo(repositoryLink, localRepoPath string) (string, error) {
 	for dirExists(localRepoPath) {
-		fmt.Print("Repo already exists locally. Overwrite? y/n/q: ")
+		fmt.Println("\nDirectory already exists. Choose an option:")
+		fmt.Println("  [Enter] - Delete and overwrite")
+		fmt.Println("  [n]     - Clone with different name")
+		fmt.Println("  [q]     - Cancel operation")
+		fmt.Print("Your choice: ")
 		input := bufio.NewScanner(os.Stdin)
 		input.Scan()
-		if strings.ToLower(input.Text()) == "y" {
-			deleteExistingRepo(localRepoPath)
+		if strings.ToLower(input.Text()) == "" {
+			deleteDirectory(localRepoPath)
 		}
 
 		if strings.ToLower(input.Text()) == "n" {
@@ -145,7 +150,7 @@ func startDevServer(dirPath string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Println("\n>>>Starting dev server...")
+	fmt.Println("\nStarting dev server...")
 	if err := cmd.Start(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return fmt.Errorf("Failed to start the dev server (exit %d)", ee.ExitCode())
@@ -157,7 +162,7 @@ func startDevServer(dirPath string) error {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		fmt.Println("\n>>>Dev server stopped.")
+		fmt.Println("\nDev server stopped.")
 
 		if cmd.Process != nil {
 			cmd.Process.Kill()
@@ -174,10 +179,51 @@ func startFileServer(dirPath string) error {
 
 	go func() {
 		if err := http.ListenAndServe(":5500", nil); err != nil {
-			fmt.Errorf("Could not start file server: %v", err)
+			fmt.Printf("\nCould not start file server: %v", err)
 		}
 	}()
+
+	openHTMLFile("http://localhost:5500")
 	return nil
+}
+
+func openHTMLFile(filePath string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", filePath)
+	case "darwin":
+		cmd = exec.Command("open", filePath)
+	default:
+		cmd = exec.Command("xdg-open", filePath)
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("Could not open browser: %v", err)
+	}
+	return nil
+}
+
+func cleanUp(dirPath string) error {
+	for {
+		fmt.Println("\nPress Enter to delete project directory, or type 'k' to save it:")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		input := strings.ToLower(strings.TrimSpace(scanner.Text()))
+
+		if input == "" {
+			if err := deleteDirectory(dirPath); err != nil {
+				return fmt.Errorf("Cleanup failed: %v", err)
+			}
+			fmt.Println("🗑️ Cleanup successful...")
+			return nil
+		} else if input == "k" {
+			fmt.Println("Directory saved. Don't forget to remove it when done")
+			return nil
+		} else {
+			fmt.Println("Invalid input. Press Enter or type 'k'...")
+		}
+	}
 }
 
 func handlerReview(s *state, cmd command) error {
@@ -227,6 +273,10 @@ func handlerReview(s *state, cmd command) error {
 	signal.Notify(c, os.Interrupt)
 	<-c
 
+	err = cleanUp(localRepoPath)
+	if err != nil {
+		return fmt.Errorf("Could not delete directory")
+	}
 	fmt.Println("Shutting down.. Goodbye!")
 	return nil
 }
