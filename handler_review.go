@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,15 +15,17 @@ import (
 	"syscall"
 )
 
+const ghRegex = `^(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?/?$`
+
 func isValidGitHubURL(link string) bool {
-	var ghRegex = regexp.MustCompile(`^https://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$`)
-	return ghRegex.MatchString(link)
+	var regex = regexp.MustCompile(ghRegex)
+	return regex.MatchString(link)
 
 }
 
 func extractRepoDetails(link string) (string, string) {
-	var ghRegex = regexp.MustCompile(`^https://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$`)
-	matches := ghRegex.FindStringSubmatch(link)
+	var regex = regexp.MustCompile(ghRegex)
+	matches := regex.FindStringSubmatch(link)
 
 	return matches[1], matches[2]
 }
@@ -47,15 +50,21 @@ func setupTempDir(path string) (string, error) {
 func cloneRepository(link, path string) error {
 	cmd := exec.Command("git", "clone", link, path)
 
+	var stderr bytes.Buffer
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
+			errorOutput := stderr.String()
+			if strings.Contains(errorOutput, "not found") || strings.Contains(errorOutput, "could not read") {
+				return fmt.Errorf("Repository not found or is private. Please check:\n  - URL is correct\n  - Repository is set to public\n")
+			}
 			return fmt.Errorf("git clone failed (exit %d)", ee.ExitCode())
 		}
 		return fmt.Errorf("failed to run git: %w", err)
 	}
+
 	return nil
 }
 
@@ -99,7 +108,7 @@ func setupLocalRepo(repositoryLink, localRepoPath string) (string, error) {
 
 	err := cloneRepository(repositoryLink, localRepoPath)
 	if err != nil {
-		return "", fmt.Errorf("Could not clone repo: %v", err)
+		return "", fmt.Errorf("❌ Could not clone repo. \n%v", err)
 	}
 	return localRepoPath, nil
 }
@@ -206,7 +215,7 @@ func openHTMLFile(filePath string) error {
 
 func cleanUp(dirPath string) error {
 	for {
-		fmt.Println("\nPress Enter to delete project directory, or type 'k' to save it:")
+		fmt.Println("\nPress Enter to delete project directory, or type 's' to save it:")
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
 		input := strings.ToLower(strings.TrimSpace(scanner.Text()))
@@ -217,11 +226,11 @@ func cleanUp(dirPath string) error {
 			}
 			fmt.Println("🗑️ Cleanup successful...")
 			return nil
-		} else if input == "k" {
+		} else if input == "s" {
 			fmt.Println("Directory saved. Don't forget to remove it when done")
 			return nil
 		} else {
-			fmt.Println("Invalid input. Press Enter or type 'k'...")
+			fmt.Println("Invalid input. Press Enter or type 's'...")
 		}
 	}
 }
@@ -250,7 +259,7 @@ func handlerReview(s *state, cmd command) error {
 
 	localRepoPath, err = setupLocalRepo(repositoryLink, localRepoPath)
 	if err != nil {
-		return fmt.Errorf("Could not set up local directory: %v", err)
+		return err
 	}
 
 	if hasPackageJSON(localRepoPath) {

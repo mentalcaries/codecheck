@@ -12,7 +12,7 @@ type state struct {
 }
 
 func main() {
-	cfg, err := config.Read()
+	cfg, err := config.CheckConfig()
 
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
@@ -30,7 +30,7 @@ func main() {
 
 	commandArgs := os.Args
 	if len(commandArgs) < 2 {
-		log.Fatal("invalid command")
+		log.Fatal("Invalid command. Usage: codecheck <github-repo-url>")
 	}
 
 	cmd := command{name: commandArgs[1], args: commandArgs[2:]}

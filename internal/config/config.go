@@ -1,11 +1,13 @@
 package config
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -19,7 +21,49 @@ func (cfg *Config) SetDownloadDir(dirName string) error {
 	return write(*cfg)
 }
 
-func Read() (Config, error) {
+func getConfigFilePath() (string, error) {
+	homeLocation, err := os.UserHomeDir()
+
+	if err != nil {
+		return "", err
+	}
+	configPath := filepath.Join(homeLocation, configFileName)
+
+	return configPath, nil
+}
+
+func configExists() bool {
+	configPath, err := getConfigFilePath()
+	if err != nil {
+		fmt.Println("invalid path")
+	}
+	_, err = os.Stat(configPath)
+	return err == nil
+}
+
+func configDownloadDir() {
+	scanner := bufio.NewScanner(os.Stdin)
+	input := strings.TrimSpace(scanner.Text())
+	fmt.Printf("Download directory not configured. Enter your temporary download location: ~/")
+	if input == "" {
+		input = "./"
+	}
+	scanner.Scan()
+	path := scanner.Text()
+	if strings.TrimSpace(path) != "" {
+		write(Config{DownloadDirectory: path})
+	}
+}
+
+func CheckConfig() (Config, error) {
+	for !configExists() {
+		configDownloadDir()
+	}
+
+	return read()
+}
+
+func read() (Config, error) {
 	filePath, err := getConfigFilePath()
 
 	if err != nil {
@@ -47,17 +91,6 @@ func Read() (Config, error) {
 	config.DownloadDirectory = filepath.Clean(filepath.Join(home, config.DownloadDirectory))
 
 	return config, nil
-}
-
-func getConfigFilePath() (string, error) {
-	homeLocation, err := os.UserHomeDir()
-
-	if err != nil {
-		return "", err
-	}
-	configPath := filepath.Join(homeLocation, configFileName)
-
-	return configPath, nil
 }
 
 func write(config Config) error {
