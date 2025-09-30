@@ -37,7 +37,7 @@ func dirExists(path string) bool {
 	return err == nil
 }
 
-func fileExists (dirPath, filename string) bool {
+func fileExists(dirPath, filename string) bool {
 	pathToFile := filepath.Join(dirPath, filename)
 	_, err := os.Stat(pathToFile)
 	return err == nil
@@ -226,24 +226,33 @@ func openHTMLFile(filePath string) error {
 	return nil
 }
 
-func cleanUp(dirPath string) error {
+func cleanUp(repoDirPath, userDirPath string) error {
 	for {
-		fmt.Println("\nPress Enter to delete project directory, or type 's' to save it:")
+		fmt.Println("\n  Press [Enter] to delete user directory and all projects")
+		fmt.Println("  [d]     - Delete **this project** but keep any others")
+		fmt.Println("  [s]     - Keep everything, I'll delete them later")
+		fmt.Print("\nYour choice: ")
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
 		input := strings.ToLower(strings.TrimSpace(scanner.Text()))
 
 		if input == "" {
-			if err := deleteDirectory(dirPath); err != nil {
+			if err := deleteDirectory(userDirPath); err != nil {
 				return fmt.Errorf("Cleanup failed: %v", err)
 			}
 			fmt.Println("🗑️ Cleanup successful...")
 			return nil
+		} else if input == "d" {
+			if err := deleteDirectory(repoDirPath); err != nil {
+				return fmt.Errorf("Cleanup failed: %v", err)
+			}
+			fmt.Println("Project deleted. User's directory and other projects still available")
+			return nil
 		} else if input == "s" {
-			fmt.Println("Directory saved. Don't forget to remove it when done")
+			fmt.Println("\nAll files saved. Don't forget to remove them when done")
 			return nil
 		} else {
-			fmt.Println("Invalid input. Press Enter or type 's'...")
+			fmt.Println("Invalid input. Press Enter, 'd' or 's'...")
 		}
 	}
 }
@@ -290,12 +299,12 @@ func handlerReview(s *state, cmd command) error {
 	}
 
 	openRepoWithVSCode(localRepoPath)
-	fmt.Println("Press Ctrl + C to exit")
+	fmt.Println("Press Ctrl + C to exit\n")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 
-	err = cleanUp(localRepoPath)
+	err = cleanUp(localRepoPath, userDirPath)
 	if err != nil {
 		return fmt.Errorf("Could not delete directory")
 	}
