@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/mentalcaries/tt-codecheck/internal/config"
+	"github.com/mentalcaries/codecheck/internal/config"
 )
 
 func handlerSetup(s *state, cmd command) error {

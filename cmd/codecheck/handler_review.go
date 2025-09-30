@@ -16,6 +16,7 @@ import (
 )
 
 const ghRegex = `^(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?/?$`
+const PORT = "5543"
 
 func isValidGitHubURL(link string) bool {
 	var regex = regexp.MustCompile(ghRegex)
@@ -184,15 +185,15 @@ func startFileServer(dirPath string) error {
 	fileserver := http.FileServer(http.Dir(dirPath))
 	http.Handle("/", fileserver)
 
-	fmt.Println("🚀 Serving index.html here: http://localhost:5500")
+	fmt.Printf("🚀 Serving index.html here: http://localhost:%s\n", PORT)
 
 	go func() {
-		if err := http.ListenAndServe(":5500", nil); err != nil {
+		if err := http.ListenAndServe(":"+PORT, nil); err != nil {
 			fmt.Printf("\nCould not start file server: %v", err)
 		}
 	}()
 
-	openHTMLFile("http://localhost:5500")
+	openHTMLFile("http://localhost:" + PORT)
 	return nil
 }
 

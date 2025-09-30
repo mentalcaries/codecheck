@@ -1,3 +1,3 @@
-module github.com/mentalcaries/tt-codecheck
+module github.com/mentalcaries/codecheck
 
 go 1.25.1

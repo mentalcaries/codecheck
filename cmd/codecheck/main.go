@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/mentalcaries/tt-codecheck/internal/config"
+	"github.com/mentalcaries/codecheck/internal/config"
 )
 
 type state struct {
