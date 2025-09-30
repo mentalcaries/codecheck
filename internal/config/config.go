@@ -32,7 +32,7 @@ func getConfigFilePath() (string, error) {
 	return configPath, nil
 }
 
-func configExists() bool {
+func ConfigExists() bool {
 	configPath, err := getConfigFilePath()
 	if err != nil {
 		fmt.Println("invalid path")
@@ -41,13 +41,8 @@ func configExists() bool {
 	return err == nil
 }
 
-func configDownloadDir() {
+func ConfigDownloadDir() {
 	scanner := bufio.NewScanner(os.Stdin)
-	input := strings.TrimSpace(scanner.Text())
-	fmt.Printf("Download directory not configured. Enter your temporary download location: ~/")
-	if input == "" {
-		input = "./"
-	}
 	scanner.Scan()
 	path := scanner.Text()
 	if strings.TrimSpace(path) != "" {
@@ -56,14 +51,15 @@ func configDownloadDir() {
 }
 
 func CheckConfig() (Config, error) {
-	for !configExists() {
-		configDownloadDir()
+	for !ConfigExists() {
+		fmt.Printf("Download directory not configured. Enter your temporary download location: ~/")
+		ConfigDownloadDir()
 	}
 
-	return read()
+	return Read()
 }
 
-func read() (Config, error) {
+func Read() (Config, error) {
 	filePath, err := getConfigFilePath()
 
 	if err != nil {
