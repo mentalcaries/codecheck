@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -36,6 +37,12 @@ func dirExists(path string) bool {
 	return err == nil
 }
 
+func fileExists (dirPath, filename string) bool {
+	pathToFile := filepath.Join(dirPath, filename)
+	_, err := os.Stat(pathToFile)
+	return err == nil
+}
+
 func setupTempDir(path string) (string, error) {
 	if !dirExists(path) {
 		fmt.Println("Directory does not exist, creating directory...")
@@ -53,7 +60,7 @@ func cloneRepository(link, path string) error {
 
 	var stderr bytes.Buffer
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = &stderr
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
 
 	if err := cmd.Run(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -182,6 +189,11 @@ func startDevServer(dirPath string) error {
 }
 
 func startFileServer(dirPath string) error {
+	if !fileExists(dirPath, "index.html") {
+		fmt.Println("index.html not found. Skipping file server...")
+		return nil
+	}
+
 	fileserver := http.FileServer(http.Dir(dirPath))
 	http.Handle("/", fileserver)
 
@@ -278,7 +290,7 @@ func handlerReview(s *state, cmd command) error {
 	}
 
 	openRepoWithVSCode(localRepoPath)
-
+	fmt.Println("Press Ctrl + C to exit")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
