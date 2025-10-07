@@ -21,7 +21,7 @@ A CLI tool to streamline code review workflows for student assignments. CodeChec
 ## Installation
 
 ```bash
-go install github.com/mentalcaries/codecheck/cmd/codecheck
+go install github.com/mentalcaries/codecheck/cmd/codecheck@latest
 ```
 
 ## Usage
