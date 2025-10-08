@@ -7,7 +7,7 @@ import (
 	"github.com/mentalcaries/codecheck/internal/config"
 )
 
-const Version = "v0.1.0"
+const Version = "v0.1.1"
 
 type state struct {
 	config *config.Config
