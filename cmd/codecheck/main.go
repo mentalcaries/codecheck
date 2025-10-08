@@ -31,7 +31,7 @@ func main() {
 
 	commandArgs := os.Args
 	if len(commandArgs) < 2 {
-		log.Fatal("Invalid command. Usage: codecheck <github-repo-url>")
+		log.Fatal("Invalid command. Usage: codecheck <command>")
 	}
 
 	cmd := command{name: commandArgs[1], args: commandArgs[2:]}

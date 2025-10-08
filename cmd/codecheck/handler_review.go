@@ -16,7 +16,7 @@ import (
 	"syscall"
 )
 
-const ghRegex = `^(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?/?$`
+const ghRegex = `^(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?(?:/tree/([^/]+))?/?$`
 const PORT = "5543"
 
 func isValidGitHubURL(link string) bool {
@@ -25,11 +25,18 @@ func isValidGitHubURL(link string) bool {
 
 }
 
-func extractRepoDetails(link string) (string, string) {
+func extractRepoDetails(link string) (user, repo, branch string) {
 	var regex = regexp.MustCompile(ghRegex)
 	matches := regex.FindStringSubmatch(link)
+	user = matches[1]
+	repo = matches[2]
+	branch = matches[3]
 
-	return matches[1], matches[2]
+	return
+}
+
+func createGitHubURL(user, repo string) string {
+	return fmt.Sprintf("https://github.com/%s/%s", user, repo)
 }
 
 func dirExists(path string) bool {
@@ -55,8 +62,14 @@ func setupTempDir(path string) (string, error) {
 	return path, nil
 }
 
-func cloneRepository(link, path string) error {
+func cloneRepository(link, branchName, path string) error {
+	fmt.Println(">>>>>>>✅ ", branchName)
 	cmd := exec.Command("git", "clone", link, path)
+	if strings.TrimSpace(branchName) != "" {
+		cmd = exec.Command("git", "clone", "-b", branchName, "--single-branch", link, path)
+
+	}
+	fmt.Println(cmd)
 
 	var stderr bytes.Buffer
 	cmd.Stdout = os.Stdout
@@ -89,7 +102,7 @@ func deleteDirectory(path string) error {
 
 }
 
-func setupLocalRepo(repositoryLink, localRepoPath string) (string, error) {
+func setupLocalRepo(repositoryLink, branch, localRepoPath string) (string, error) {
 	for dirExists(localRepoPath) {
 		fmt.Println("\nDirectory already exists. Choose an option:")
 		fmt.Println("  [Enter] - Delete and overwrite")
@@ -114,9 +127,9 @@ func setupLocalRepo(repositoryLink, localRepoPath string) (string, error) {
 		}
 	}
 
-	err := cloneRepository(repositoryLink, localRepoPath)
+	err := cloneRepository(repositoryLink, branch, localRepoPath)
 	if err != nil {
-		return "", fmt.Errorf("❌ Could not clone repo. \n%v", err)
+		return "", fmt.Errorf(" ⚠️ Could not clone repo. \n%v", err)
 	}
 	return localRepoPath, nil
 }
@@ -259,18 +272,28 @@ func cleanUp(repoDirPath, userDirPath string) error {
 
 func handlerReview(s *state, cmd command) error {
 	if len(cmd.args) < 1 {
-		return fmt.Errorf("link to github repository is required")
+		return fmt.Errorf("Link repository is required")
 	}
 
 	repositoryLink := cmd.args[0]
+	var branch string
+	// Git branch can be supplied as an argument
+	if len(cmd.args) > 1 {
+		branch = cmd.args[1]
+	}
 
 	isValidLink := isValidGitHubURL(repositoryLink)
 	if !isValidLink {
 		return fmt.Errorf("Invalid github URL")
 	}
 
-	userName, repoName := extractRepoDetails(repositoryLink)
+	// If no branch argument is supplied, it can be checked and parsed from the URL
+	userName, repoName, parsedBranch := extractRepoDetails(repositoryLink)
 	userDirPath := filepath.Join(s.config.DownloadDirectory, userName)
+
+	if branch == "" {
+		branch = parsedBranch
+	}
 
 	userDirPath, err := setupTempDir(userDirPath)
 	if err != nil {
@@ -278,8 +301,9 @@ func handlerReview(s *state, cmd command) error {
 	}
 
 	localRepoPath := filepath.Join(userDirPath, repoName)
+	gitHubURL := createGitHubURL(userName, repoName)
 
-	localRepoPath, err = setupLocalRepo(repositoryLink, localRepoPath)
+	localRepoPath, err = setupLocalRepo(gitHubURL, branch, localRepoPath)
 	if err != nil {
 		return err
 	}
