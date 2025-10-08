@@ -38,7 +38,8 @@ codecheck setup
 
 ### Review a Project
 
-Supports GitHub URLs - HTTP and SSH. Usage:
+Supports GitHub URLs - HTTP and SSH. If you need to review code on a specific branch, the branch name can be passed as an optional argument. Alternatively, the GitHub branch URL can also be used.
+Usage:
 
 ```bash
 codecheck review <github-url> [branch]
@@ -49,8 +50,8 @@ codecheck review <github-url> [branch]
 codecheck review https://github.com/student/assignment-1
 codecheck review https://github.com/student/project.git
 codecheck review git@github.com:student/assignment.git
-codecheck review https://github.com/student/project develop
-codecheck review https://github.com/student/project/tree/feature-auth
+codecheck review https://github.com/student/project develop # branch name as argument
+codecheck review https://github.com/student/project/tree/feature-auth # with branch URL
 ```
 
 **Branch Support:**
