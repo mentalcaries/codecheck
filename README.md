@@ -41,7 +41,7 @@ codecheck setup
 Supports GitHub URLs - HTTP and SSH. Usage:
 
 ```bash
-codecheck review <github-url>
+codecheck review <github-url> [branch]
 ```
 
 **Examples:**
@@ -49,7 +49,15 @@ codecheck review <github-url>
 codecheck review https://github.com/student/assignment-1
 codecheck review https://github.com/student/project.git
 codecheck review git@github.com:student/assignment.git
+codecheck review https://github.com/student/project develop
+codecheck review https://github.com/student/project/tree/feature-auth
 ```
+
+**Branch Support:**
+- Clone a specific branch by providing it as an argument
+- Or paste a GitHub branch URL (includes `/tree/branch-name`)
+- If both are provided, the argument takes priority
+- Defaults to repository's default branch if not specified
 
 **What happens:**
 1. Clones the repository to your configured directory
