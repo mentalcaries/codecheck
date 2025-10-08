@@ -63,7 +63,6 @@ func setupTempDir(path string) (string, error) {
 }
 
 func cloneRepository(link, branchName, path string) error {
-	fmt.Println(">>>>>>>✅ ", branchName)
 	cmd := exec.Command("git", "clone", link, path)
 	if strings.TrimSpace(branchName) != "" {
 		cmd = exec.Command("git", "clone", "-b", branchName, "--single-branch", link, path)
