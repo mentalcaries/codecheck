@@ -16,14 +16,8 @@ import (
 	"syscall"
 )
 
-const ghRegex = `^(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?(?:/tree/([^/]+))?/?$`
 const PORT = "5543"
 
-func isValidGitHubURL(link string) bool {
-	var regex = regexp.MustCompile(ghRegex)
-	return regex.MatchString(link)
-
-}
 
 func extractRepoDetails(link string) (user, repo, branch string) {
 	var regex = regexp.MustCompile(ghRegex)
@@ -39,23 +33,13 @@ func createGitHubURL(user, repo string) string {
 	return fmt.Sprintf("https://github.com/%s/%s", user, repo)
 }
 
-func dirExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
-func fileExists(dirPath, filename string) bool {
-	pathToFile := filepath.Join(dirPath, filename)
-	_, err := os.Stat(pathToFile)
-	return err == nil
-}
 
 func setupTempDir(path string) (string, error) {
 	if !dirExists(path) {
 		fmt.Println("Directory does not exist, creating directory...")
 		err := os.MkdirAll(path, 0755)
 		if err != nil {
-			return "", fmt.Errorf("Could not create user directory")
+			return "", fmt.Errorf("could not create user directory")
 		}
 	}
 
@@ -78,7 +62,7 @@ func cloneRepository(link, branchName, path string) error {
 		if ee, ok := err.(*exec.ExitError); ok {
 			errorOutput := stderr.String()
 			if strings.Contains(errorOutput, "not found") || strings.Contains(errorOutput, "could not read") {
-				return fmt.Errorf("Repository not found or is private. Please check:\n  - URL is correct\n  - Repository is set to public\n")
+				return fmt.Errorf("repository not found or is private. Please check:\n  - URL is correct\n  - Repository is set to public")
 			}
 			return fmt.Errorf("git clone failed (exit %d)", ee.ExitCode())
 		}
@@ -122,7 +106,7 @@ func setupLocalRepo(repositoryLink, branch, localRepoPath string) (string, error
 		}
 
 		if strings.ToLower(input.Text()) == "q" {
-			return "", fmt.Errorf("User cancelled operation")
+			return "", fmt.Errorf("user cancelled operation")
 		}
 	}
 
@@ -130,6 +114,11 @@ func setupLocalRepo(repositoryLink, branch, localRepoPath string) (string, error
 	if err != nil {
 		return "", fmt.Errorf(" ⚠️ Could not clone repo. \n%v", err)
 	}
+
+	// with respository cloned, directory should be checked for:
+	//  - nested directory
+	//  - mono repo
+
 	return localRepoPath, nil
 }
 
@@ -143,19 +132,13 @@ func openRepoWithVSCode(repoPath string) error {
 		fmt.Println("VS Code available. Opening project...")
 		cmd := exec.Command("code", repoPath)
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("Error opening VSCode")
+			return fmt.Errorf("error opening VSCode")
 		}
 	} else {
 		fmt.Println("VS Code CLI not found")
 	}
 
 	return nil
-}
-
-func hasPackageJSON(dirPath string) bool {
-	packagePath := filepath.Join(dirPath, "package.json")
-	_, err := os.Stat(packagePath)
-	return err == nil
 }
 
 func installDependencies(dirPath string) error {
@@ -165,7 +148,7 @@ func installDependencies(dirPath string) error {
 
 	fmt.Println("Installing NPM depedencies...")
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Could not install dependencies: %w", err)
+		return fmt.Errorf("could not install dependencies: %w", err)
 	} else {
 		fmt.Println("Depedencies installed successfully.")
 	}
@@ -182,9 +165,9 @@ func startDevServer(dirPath string) error {
 	fmt.Println("\nStarting dev server...")
 	if err := cmd.Start(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
-			return fmt.Errorf("Failed to start the dev server (exit %d)", ee.ExitCode())
+			return fmt.Errorf("failed to start the dev server (exit %d)", ee.ExitCode())
 		}
-		return fmt.Errorf("Could not start dev server: %w", err)
+		return fmt.Errorf("could not start dev server: %w", err)
 	}
 
 	go func() {
@@ -233,7 +216,7 @@ func openHTMLFile(filePath string) error {
 		cmd = exec.Command("xdg-open", filePath)
 	}
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("Could not open browser: %v", err)
+		return fmt.Errorf("could not open browser: %v", err)
 	}
 	return nil
 }
@@ -250,13 +233,13 @@ func cleanUp(repoDirPath, userDirPath string) error {
 
 		if input == "" {
 			if err := deleteDirectory(userDirPath); err != nil {
-				return fmt.Errorf("Cleanup failed: %v", err)
+				return fmt.Errorf("cleanup failed: %v", err)
 			}
 			fmt.Println("🗑️ Cleanup successful...")
 			return nil
 		} else if input == "d" {
 			if err := deleteDirectory(repoDirPath); err != nil {
-				return fmt.Errorf("Cleanup failed: %v", err)
+				return fmt.Errorf("cleanup failed: %v", err)
 			}
 			fmt.Println("Project deleted. User's directory and other projects still available")
 			return nil
@@ -271,7 +254,7 @@ func cleanUp(repoDirPath, userDirPath string) error {
 
 func handlerReview(s *state, cmd command) error {
 	if len(cmd.args) < 1 {
-		return fmt.Errorf("Link repository is required")
+		return fmt.Errorf("link repository is required")
 	}
 
 	repositoryLink := cmd.args[0]
@@ -283,7 +266,7 @@ func handlerReview(s *state, cmd command) error {
 
 	isValidLink := isValidGitHubURL(repositoryLink)
 	if !isValidLink {
-		return fmt.Errorf("Invalid github URL")
+		return fmt.Errorf("invalid github URL")
 	}
 
 	// If no branch argument is supplied, it can be checked and parsed from the URL
@@ -296,7 +279,7 @@ func handlerReview(s *state, cmd command) error {
 
 	userDirPath, err := setupTempDir(userDirPath)
 	if err != nil {
-		return fmt.Errorf("Could not create temp directory: %v", err)
+		return fmt.Errorf("could not create temp directory: %v", err)
 	}
 
 	localRepoPath := filepath.Join(userDirPath, repoName)
@@ -306,6 +289,9 @@ func handlerReview(s *state, cmd command) error {
 	if err != nil {
 		return err
 	}
+
+	// get project root
+
 
 	if hasPackageJSON(localRepoPath) {
 		fmt.Println("\nReading package.json...")
@@ -330,7 +316,7 @@ func handlerReview(s *state, cmd command) error {
 
 	err = cleanUp(localRepoPath, userDirPath)
 	if err != nil {
-		return fmt.Errorf("Could not delete directory")
+		return fmt.Errorf("could not delete directory")
 	}
 	fmt.Println("Shutting down.. Goodbye!")
 	return nil
