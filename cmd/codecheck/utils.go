@@ -9,7 +9,7 @@ import (
 
 const ghRegex = `^(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?(?:/tree/([^/]+))?/?$`
 
-const ttProjectRegex = `^([a-zA-Z0-9-]+)-([a-zA-Z0-9_]+)-([0-9a-f]{7,40})$`
+const ttProjectRegex = `^([a-zA-Z0-9-]+)-(se_project_[a-zA-Z0-9_]+)-([0-9a-f]{7,40})$`
 
 func isValidGitHubURL(link string) bool {
 	var regex = regexp.MustCompile(ghRegex)
@@ -17,8 +17,8 @@ func isValidGitHubURL(link string) bool {
 }
 
 func isValidProjectString(link string) bool {
-    var regex = regexp.MustCompile(ttProjectRegex)
-    return regex.MatchString(link)
+	var regex = regexp.MustCompile(ttProjectRegex)
+	return regex.MatchString(link)
 }
 
 func dirExists(path string) bool {

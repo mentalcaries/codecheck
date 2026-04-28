@@ -38,11 +38,12 @@ codecheck setup
 
 ### Review a Project
 
-Supports GitHub URLs - HTTP and SSH. If you need to review code on a specific branch, the branch name can be passed as an optional argument. Alternatively, the GitHub branch URL can also be used.
-Usage:
+Supports GitHub URLs - HTTP and SSH. If you need to review code on a specific branch, use the GitHub branch URL directly.
 
 ```bash
-codecheck review <github-url> [branch]
+codecheck review <github-url>
+
+codecheck review <review-link-with-commit-hash>
 ```
 
 **Examples:**
@@ -50,15 +51,17 @@ codecheck review <github-url> [branch]
 codecheck review https://github.com/student/assignment-1
 codecheck review https://github.com/student/project.git
 codecheck review git@github.com:student/assignment.git
-codecheck review https://github.com/student/project develop # branch name as argument
-codecheck review https://github.com/student/project/tree/feature-auth # with branch URL
+codecheck review https://github.com/student/project/tree/feature-auth # with branch
+codecheck review Ventus674-se_project_react-205daa6                   # with commit hash
 ```
 
 **Branch Support:**
-- Clone a specific branch by providing it as an argument
-- Or paste a GitHub branch URL (includes `/tree/branch-name`)
-- If both are provided, the argument takes priority
+- Clone a specific branch by pasting a GitHub branch URL (includes `/tree/branch-name`)
 - Defaults to repository's default branch if not specified
+
+**Commit Hash Support:**
+- Accepts a project string in the format `username-reponame-commithash`
+- Clones the repository and checks out the specific commit for review
 
 **What happens:**
 1. Clones the repository to your configured directory

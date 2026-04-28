@@ -18,10 +18,12 @@ import (
 
 const PORT = "5543"
 
-
 func extractRepoDetails(link string) (user, repo, branch string) {
 	var regex = regexp.MustCompile(ghRegex)
 	matches := regex.FindStringSubmatch(link)
+	if matches == nil {
+		return
+	}
 	user = matches[1]
 	repo = matches[2]
 	branch = matches[3]
@@ -29,10 +31,21 @@ func extractRepoDetails(link string) (user, repo, branch string) {
 	return
 }
 
+func parseRepoHashDetails(commitString string) (user, repo, commitHash string) {
+	var regex = regexp.MustCompile(ttProjectRegex)
+	matches := regex.FindStringSubmatch(commitString)
+	if matches == nil {
+		return
+	}
+	user = matches[1]
+	repo = matches[2]
+	commitHash = matches[3]
+	return
+}
+
 func createGitHubURL(user, repo string) string {
 	return fmt.Sprintf("https://github.com/%s/%s", user, repo)
 }
-
 
 func setupTempDir(path string) (string, error) {
 	if !dirExists(path) {
@@ -114,10 +127,6 @@ func setupLocalRepo(repositoryLink, branch, localRepoPath string) (string, error
 	if err != nil {
 		return "", fmt.Errorf(" ⚠️ Could not clone repo. \n%v", err)
 	}
-
-	// with respository cloned, directory should be checked for:
-	//  - nested directory
-	//  - mono repo
 
 	return localRepoPath, nil
 }
@@ -258,24 +267,27 @@ func handlerReview(s *state, cmd command) error {
 	}
 
 	repositoryLink := cmd.args[0]
-	var branch string
-	// Git branch can be supplied as an argument
-	if len(cmd.args) > 1 {
-		branch = cmd.args[1]
-	}
 
 	isValidLink := isValidGitHubURL(repositoryLink)
-	if !isValidLink {
-		return fmt.Errorf("invalid github URL")
+	isValidProjectCommit := isValidProjectString(repositoryLink)
+
+	if !isValidLink && !isValidProjectCommit {
+		return fmt.Errorf("invalid repository link or project string")
 	}
 
 	// If no branch argument is supplied, it can be checked and parsed from the URL
-	userName, repoName, parsedBranch := extractRepoDetails(repositoryLink)
-	userDirPath := filepath.Join(s.config.DownloadDirectory, userName)
 
-	if branch == "" {
-		branch = parsedBranch
+	var userName, repoName, parsedBranch, commitHash string
+
+	if isValidLink {
+		userName, repoName, parsedBranch = extractRepoDetails(repositoryLink)
 	}
+
+	if isValidProjectCommit {
+		userName, repoName, commitHash = parseRepoHashDetails(repositoryLink)
+	}
+
+	userDirPath := filepath.Join(s.config.DownloadDirectory, userName)
 
 	userDirPath, err := setupTempDir(userDirPath)
 	if err != nil {
@@ -285,13 +297,18 @@ func handlerReview(s *state, cmd command) error {
 	localRepoPath := filepath.Join(userDirPath, repoName)
 	gitHubURL := createGitHubURL(userName, repoName)
 
-	localRepoPath, err = setupLocalRepo(gitHubURL, branch, localRepoPath)
+	localRepoPath, err = setupLocalRepo(gitHubURL, parsedBranch, localRepoPath)
 	if err != nil {
 		return err
 	}
 
-	// get project root
-
+	if strings.TrimSpace(commitHash) != "" {
+		cmd := exec.Command("git", "checkout", commitHash)
+		cmd.Dir = localRepoPath
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("error checking out commit")
+		}
+	}
 
 	if hasPackageJSON(localRepoPath) {
 		fmt.Println("\nReading package.json...")
