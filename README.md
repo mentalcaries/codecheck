@@ -36,7 +36,7 @@ If you need to change the config afterwards, you can run:
 codecheck setup
 ```
 
-### Review a Project
+### Quick Start
 
 Supports GitHub URLs - HTTP and SSH. If you need to review code on a specific branch, use the GitHub branch URL directly.
 
@@ -125,6 +125,27 @@ go run ./cmd/codecheck review <github-url>
 **Port conflicts**
 - CodeCheck serves static html files from Port 5543, Vite auto-assigns and WebPack uses its config
 - If issues persist, manually stop any processes using the ports or manually change the config
+
+
+## Contributing
+
+### Clone the repo
+
+```bash
+git clone https://github.com/mentalcaries/codecheck
+cd codecheck
+```
+
+### Run the CLI
+
+```bash
+go run cmd/codecheck/*.go <repo name>
+```
+
+
+### Submit a pull request
+
+If you'd like to contribute, please fork the repository and open a pull request to the `main` branch.
 
 ## License
 
