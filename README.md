@@ -2,6 +2,10 @@
 
 A CLI tool to streamline code review workflows for student assignments. CodeCheck automates cloning repositories, installing dependencies, opening projects in VS Code, and starting development servers.
 
+## Motivation
+
+Cloning and project setup can be quite tedious and repeitive for the quick project checks we often do at TripleTen. CodeCheck reduces this to one command, and as an added benefit cleans up the code and thousands of node_modules installed for every project, greatly simplifying the instructor/tutor workflow.
+
 ## Features
 
 -  Clone GitHub repositories with one command
